@@ -58,6 +58,10 @@ const ChartConfig = {
     L_BTN_SIZE: 21,  // Legend Button size, px
     L_BTN_MARGIN: '-6px 0 -6px 0', // css margin
     SCROLL_WHEEL: 'prevent', // 'pass', 'click'
+    MOBILE_CURSOR_OFFSET_X: -50,  // Crosshair X offset from touch (px)
+    MOBILE_CURSOR_OFFSET_Y: -120, // Crosshair Y offset from touch (px)
+    MOBILE_CURSOR_HANDLE_R: 10,   // Control handle radius (px)
+    MOBILE_CURSOR_LINE_W: 1.5,    // Connection line width (px)
 }
 
 ChartConfig.FONT =

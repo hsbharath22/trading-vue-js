@@ -345,7 +345,8 @@ export default {
             cursor: {
                 x: null, y: null, t: null, y$: null,
                 grid_id: null, locked: false, values: {},
-                scroll_lock: false, mode: Utils.xmode()
+                scroll_lock: false, mode: Utils.xmode(),
+                handle_x: null, handle_y: null  // Mobile control handle position
             },
 
             // A trick to re-render botbar

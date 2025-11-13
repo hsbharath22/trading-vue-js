@@ -114,7 +114,9 @@ export default class Grid {
                 /*grid_id: this.id,
                 x: undefined,//event.center.x + this.offset_x,
                 y: undefined,//event.center.y + this.offset_y,*/
-                mode: 'explore'
+                mode: 'explore',
+                handle_x: null,
+                handle_y: null
             })
             this.update()
         })
@@ -221,11 +223,40 @@ export default class Grid {
     }
 
     emit_cursor_coord(event, add = {}) {
-        this.comp.$emit('cursor-changed', Object.assign({
-            grid_id: this.id,
-            x: event.center.x + this.offset_x,
-            y: event.center.y + this.offset_y + this.layout.offset
-        }, add))
+        // For mobile 'aim' mode with offset control
+        if (Utils.is_mobile && (add.mode === 'aim' || this.cursor.mode === 'aim')) {
+            const handle_x = event.center.x + this.offset_x
+            const handle_y = event.center.y + this.offset_y + this.layout.offset
+
+            // Calculate offset crosshair position
+            const offset_x = this.$p.config.MOBILE_CURSOR_OFFSET_X || -50
+            const offset_y = this.$p.config.MOBILE_CURSOR_OFFSET_Y || -120
+
+            // Clamp crosshair position within bounds
+            const cross_x = Math.max(0, Math.min(
+                this.layout.width,
+                handle_x + offset_x
+            ))
+            const cross_y = Math.max(0, Math.min(
+                this.layout.height + this.layout.offset,
+                handle_y + offset_y
+            ))
+
+            this.comp.$emit('cursor-changed', Object.assign({
+                grid_id: this.id,
+                x: cross_x,
+                y: cross_y,
+                handle_x: handle_x,
+                handle_y: handle_y
+            }, add))
+        } else {
+            // Desktop or explore mode - direct position
+            this.comp.$emit('cursor-changed', Object.assign({
+                grid_id: this.id,
+                x: event.center.x + this.offset_x,
+                y: event.center.y + this.offset_y + this.layout.offset
+            }, add))
+        }
     }
 
     pan_fade(event) {
