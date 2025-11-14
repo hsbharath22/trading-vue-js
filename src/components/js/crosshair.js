@@ -104,20 +104,20 @@ export default class Crosshair {
         const p = (100 * (cursor.m_p2[1] / cursor.m_p1[1] - 1)).toFixed(2)
 
         // Time delta
-        const dt = cursor.m_p2[0] - cursor.m_p1[0]
-        const dtStr = this.format_time_delta(dt)
+        // const dt = cursor.m_p2[0] - cursor.m_p1[0]
+        // const dtStr = this.format_time_delta(dt)
 
         // Format text
         const priceText = `${d$.toFixed(2)} (${p}%)`
-        const timeText = dtStr
+        // const timeText = dtStr
 
         // Setup text style
         ctx.font = this.$p.font
         ctx.textAlign = 'center'
         ctx.fillStyle = colors.text
 
-        // Calculate text dimensions
-        const lines = [priceText, timeText]
+        // Calculate text dimensions - only show price text, not time
+        const lines = [priceText]  // Removed timeText
         const lineHeight = 18
         const textPadding = 15  // Padding from box edge
 
