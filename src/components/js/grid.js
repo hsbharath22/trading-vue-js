@@ -117,23 +117,36 @@ export default class Grid {
                 const new_cross_x = this.aim_drag.start_cross_x + delta_x
                 const new_cross_y = this.aim_drag.start_cross_y + delta_y
 
-                this.emit_cursor_coord_relative(
-                    current_touch_x,
-                    current_touch_y,
-                    new_cross_x,
-                    new_cross_y
-                )
+                // Validate - don't emit if positions are NaN
+                if (isNaN(new_cross_x) || isNaN(new_cross_y)) {
+                    console.log('[PANMOVE] Skipping - NaN crosshair position')
+                    return
+                }
 
-                // Update second measurement point if measuring
+                // Clamp crosshair position within bounds
+                const clamped_x = Math.max(0, Math.min(this.layout.width, new_cross_x))
+                const clamped_y = Math.max(0, Math.min(this.layout.height + this.layout.offset, new_cross_y))
+
+                // Build event object with cursor position
+                const cursorEvent = {
+                    mode: 'aim',  // Explicitly maintain aim mode
+                    grid_id: this.id,
+                    x: clamped_x,
+                    y: clamped_y,
+                    handle_x: current_touch_x,
+                    handle_y: current_touch_y
+                }
+
+                // If measuring, also include m_p2 in the SAME event
                 if (this.cursor.measuring) {
                     const layout = this.$p.layout.grids[this.id]
                     const t = layout.screen2t(new_cross_x)
                     const y$ = layout.screen2$(new_cross_y)
-
-                    this.comp.$emit('cursor-changed', {
-                        m_p2: [t, y$]
-                    })
+                    cursorEvent.m_p2 = [t, y$]
                 }
+
+                // Single emission with all data
+                this.comp.$emit('cursor-changed', cursorEvent)
             }
         })
 
