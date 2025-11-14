@@ -122,9 +122,10 @@ export default class Crosshair {
         const dir = Math.sign(y2 - y1)
 
         // Position text outside the box based on direction
-        // If measuring downward (dir > 0), place text below bottom edge
-        // If measuring upward (dir < 0), place text above top edge
-        const baseY = dir > 0 ? y2 : y1
+        // y2 is always the ending point (bottom when downward, top when upward)
+        // If measuring downward (dir > 0), y2 is bottom - place text below
+        // If measuring upward (dir < 0), y2 is top - place text above
+        const baseY = y2
         const textOffset = dir > 0 ? textPadding : -(textPadding + lineHeight * (lines.length - 1))
 
         // Draw text directly without background
