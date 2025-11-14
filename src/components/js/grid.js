@@ -175,25 +175,49 @@ export default class Grid {
 
                 if (!this.cursor.measuring) {
                     console.log('[TAP] ✓ Starting measurement')
-                    // Start measuring - use current crosshair screen position
+                    console.log('[TAP] Current cursor position:', this.cursor.x, this.cursor.y)
+
+                    // Use current crosshair screen position
+                    // If cursor position is invalid, skip measurement
+                    if (this.cursor.x == null || isNaN(this.cursor.x) ||
+                        this.cursor.y == null || isNaN(this.cursor.y)) {
+                        console.log('[TAP] ✗ Cannot start measurement - invalid cursor position')
+                        return
+                    }
+
                     const t = layout.screen2t(this.cursor.x)
                     const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
 
                     this.comp.$emit('cursor-changed', {
-                        mode: 'aim',  // Explicitly maintain aim mode
+                        mode: 'aim',
+                        x: this.cursor.x,      // Maintain cursor position
+                        y: this.cursor.y,
+                        handle_x: this.cursor.handle_x,
+                        handle_y: this.cursor.handle_y,
                         measuring: true,
                         m_p1: [t, y$],
-                        m_p2: [t, y$]  // Initially same as p1
+                        m_p2: [t, y$]
                     })
-                    console.log('[TAP] ✓ Emitted cursor-changed with mode=aim, measuring=true')
+                    console.log('[TAP] ✓ Emitted cursor-changed with mode=aim, measuring=true, x:', this.cursor.x, 'y:', this.cursor.y)
                 } else {
                     console.log('[TAP] ✓ Finishing measurement')
-                    // Finish measuring - use current crosshair screen position
+
+                    // Use current crosshair screen position
+                    if (this.cursor.x == null || isNaN(this.cursor.x) ||
+                        this.cursor.y == null || isNaN(this.cursor.y)) {
+                        console.log('[TAP] ✗ Cannot finish measurement - invalid cursor position')
+                        return
+                    }
+
                     const t = layout.screen2t(this.cursor.x)
                     const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
 
                     this.comp.$emit('cursor-changed', {
-                        mode: 'aim',  // Keep in aim mode
+                        mode: 'aim',
+                        x: this.cursor.x,      // Maintain cursor position
+                        y: this.cursor.y,
+                        handle_x: this.cursor.handle_x,
+                        handle_y: this.cursor.handle_y,
                         m_p2: [t, y$]
                     })
                     // Keep measuring active to show the result
@@ -283,7 +307,8 @@ export default class Grid {
             console.log('[PRESS] ✓ Emitted cursor-changed with mode=aim')
 
             setTimeout(() => this.update())
-            this.sim_mousedown(event)
+            // Don't call sim_mousedown when entering aim mode - it interferes with cursor position
+            // this.sim_mousedown(event)
         })
 
         let add = addEventListener
