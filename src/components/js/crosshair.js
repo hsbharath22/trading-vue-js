@@ -48,8 +48,8 @@ export default class Crosshair {
     draw_measurement(ctx) {
         const cursor = this.$p.cursor
 
-        // Only draw when measuring and we have both points
-        if (!cursor.measuring || !cursor.m_p1 || !cursor.m_p2) return
+        // Draw measurement box when we have both points (whether actively measuring or finalized)
+        if (!cursor.m_p1 || !cursor.m_p2) return
 
         const layout = this.$p.layout
         const colors = this.$p.colors

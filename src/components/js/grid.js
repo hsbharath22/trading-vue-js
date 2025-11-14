@@ -247,7 +247,7 @@ export default class Grid {
                     const t = layout.screen2t(this.cursor.x)
                     const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
 
-                    this.comp.$emit('cursor-changed', {
+                    const finalEvent = {
                         mode: 'aim',
                         x: this.cursor.x,      // Maintain cursor position
                         y: this.cursor.y,
@@ -256,7 +256,9 @@ export default class Grid {
                         measuring: false,      // Lock measurement - can't drag anymore
                         m_p1: this.cursor.m_p1,  // Keep m_p1 (first point)
                         m_p2: [t, y$]            // Update m_p2 (second point)
-                    })
+                    }
+                    console.log('[TAP] ✓ Finalizing with m_p1:', this.cursor.m_p1, 'm_p2:', [t, y$])
+                    this.comp.$emit('cursor-changed', finalEvent)
                     console.log('[TAP] ✓ Measurement finalized and locked')
                     // Measurement is now locked and displayed
                     // User must long-press to exit aim mode and clear
