@@ -142,6 +142,11 @@ export default class Grid {
         mc.on('tap', event => {
             if (!Utils.is_mobile) return
 
+            // Ignore tap immediately after press (prevent accidental trigger when lifting finger)
+            if (this.press_timestamp && (Utils.now() - this.press_timestamp < 500)) {
+                return
+            }
+
             // If in aim mode, handle measurement
             if (this.cursor.mode === 'aim') {
                 this.calc_offset()
@@ -198,6 +203,9 @@ export default class Grid {
             if (!Utils.is_mobile) return
             if (this.fade) this.fade.stop()
             this.calc_offset()
+
+            // Track press timestamp to prevent immediate tap trigger
+            this.press_timestamp = Utils.now()
 
             // If already in aim mode, exit aim mode (long-press to exit)
             if (this.cursor.mode === 'aim') {
