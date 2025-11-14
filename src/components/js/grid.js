@@ -327,9 +327,11 @@ export default class Grid {
             // If already in aim mode, exit aim mode (whether actively measuring or has finalized measurement)
             if (this.cursor.mode === 'aim') {
                 // Always exit aim mode on long press, regardless of measurement state
-                console.log('[PRESS] ✓ Exiting aim mode')
+                console.log('[PRESS] ✓ Exiting aim mode and clearing crosshair')
                 this.comp.$emit('cursor-changed', {
                     mode: 'explore',
+                    x: null,
+                    y: null,
                     handle_x: null,
                     handle_y: null,
                     measuring: false,
