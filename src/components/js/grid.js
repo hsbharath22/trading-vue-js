@@ -326,24 +326,18 @@ export default class Grid {
 
             // If already in aim mode, exit aim mode (whether actively measuring or has finalized measurement)
             if (this.cursor.mode === 'aim') {
-                // Exit if actively measuring OR has a finalized measurement (m_p1 exists)
-                if (this.cursor.measuring || this.cursor.m_p1) {
-                    console.log('[PRESS] ✓ Exiting aim mode (was measuring or had finalized measurement)')
-                    this.comp.$emit('cursor-changed', {
-                        mode: 'explore',
-                        handle_x: null,
-                        handle_y: null,
-                        measuring: false,
-                        m_p1: null,
-                        m_p2: null
-                    })
-                    this.update()
-                    return
-                } else {
-                    // In aim mode but no measurement at all - just ignore the press
-                    console.log('[PRESS] ✓ Already in aim mode, no measurement - ignoring')
-                    return
-                }
+                // Always exit aim mode on long press, regardless of measurement state
+                console.log('[PRESS] ✓ Exiting aim mode')
+                this.comp.$emit('cursor-changed', {
+                    mode: 'explore',
+                    handle_x: null,
+                    handle_y: null,
+                    measuring: false,
+                    m_p1: null,
+                    m_p2: null
+                })
+                this.update()
+                return
             }
 
             // Initialize crosshair at press location (enter aim mode)
