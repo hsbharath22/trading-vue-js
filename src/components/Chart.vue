@@ -346,7 +346,11 @@ export default {
                 x: null, y: null, t: null, y$: null,
                 grid_id: null, locked: false, values: {},
                 scroll_lock: false, mode: Utils.xmode(),
-                handle_x: null, handle_y: null  // Mobile control handle position
+                handle_x: null, handle_y: null,  // Mobile control handle position
+                // Mobile measurement state
+                measuring: false,
+                m_p1: null,  // First measurement point [t, y$]
+                m_p2: null   // Second measurement point [t, y$]
             },
 
             // A trick to re-render botbar

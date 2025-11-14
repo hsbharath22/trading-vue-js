@@ -107,12 +107,26 @@ export default class Grid {
                 const delta_x = current_touch_x - this.aim_drag.start_touch_x
                 const delta_y = current_touch_y - this.aim_drag.start_touch_y
 
+                const new_cross_x = this.aim_drag.start_cross_x + delta_x
+                const new_cross_y = this.aim_drag.start_cross_y + delta_y
+
                 this.emit_cursor_coord_relative(
                     current_touch_x,
                     current_touch_y,
-                    this.aim_drag.start_cross_x + delta_x,
-                    this.aim_drag.start_cross_y + delta_y
+                    new_cross_x,
+                    new_cross_y
                 )
+
+                // Update second measurement point if measuring
+                if (this.cursor.measuring) {
+                    const layout = this.$p.layout.grids[this.id]
+                    const t = layout.screen2t(new_cross_x)
+                    const y$ = layout.screen2$(new_cross_y)
+
+                    this.comp.$emit('cursor-changed', {
+                        m_p2: [t, y$]
+                    })
+                }
             }
         })
 
@@ -127,17 +141,40 @@ export default class Grid {
 
         mc.on('tap', event => {
             if (!Utils.is_mobile) return
+
+            // If in aim mode, handle measurement
+            if (this.cursor.mode === 'aim') {
+                this.calc_offset()
+                const layout = this.$p.layout.grids[this.id]
+
+                if (!this.cursor.measuring) {
+                    // Start measuring - place first point
+                    const t = layout.screen2t(event.center.x + this.offset_x)
+                    const y$ = layout.screen2$(event.center.y + this.offset_y)
+
+                    this.comp.$emit('cursor-changed', {
+                        measuring: true,
+                        m_p1: [t, y$],
+                        m_p2: [t, y$]  // Initially same as p1
+                    })
+                } else {
+                    // Finish measuring - finalize second point
+                    const t = layout.screen2t(this.cursor.x)
+                    const y$ = layout.screen2$(this.cursor.y)
+
+                    this.comp.$emit('cursor-changed', {
+                        measuring: false,
+                        m_p2: [t, y$]
+                    })
+                }
+                this.update()
+                return
+            }
+
+            // Default tap behavior for explore mode
             this.sim_mousedown(event)
             if (this.fade) this.fade.stop()
             this.comp.$emit('cursor-changed', {})
-            this.comp.$emit('cursor-changed', {
-                /*grid_id: this.id,
-                x: undefined,//event.center.x + this.offset_x,
-                y: undefined,//event.center.y + this.offset_y,*/
-                mode: 'explore',
-                handle_x: null,
-                handle_y: null
-            })
             this.update()
         })
 
@@ -162,7 +199,21 @@ export default class Grid {
             if (this.fade) this.fade.stop()
             this.calc_offset()
 
-            // Initialize crosshair at press location
+            // If already in aim mode, exit aim mode (long-press to exit)
+            if (this.cursor.mode === 'aim') {
+                this.comp.$emit('cursor-changed', {
+                    mode: 'explore',
+                    handle_x: null,
+                    handle_y: null,
+                    measuring: false,
+                    m_p1: null,
+                    m_p2: null
+                })
+                this.update()
+                return
+            }
+
+            // Initialize crosshair at press location (enter aim mode)
             const touch_x = event.center.x + this.offset_x
             const touch_y = event.center.y + this.offset_y + this.layout.offset
 
@@ -172,7 +223,10 @@ export default class Grid {
                 y: touch_y,
                 handle_x: touch_x,
                 handle_y: touch_y,
-                mode: 'aim'
+                mode: 'aim',
+                measuring: false,
+                m_p1: null,
+                m_p2: null
             })
 
             setTimeout(() => this.update())
