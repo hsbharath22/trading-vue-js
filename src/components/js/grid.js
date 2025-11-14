@@ -203,34 +203,51 @@ export default class Grid {
                 const layout = this.$p.layout.grids[this.id]
 
                 if (!this.cursor.measuring) {
-                    console.log('[TAP] ✓ Starting measurement')
-                    console.log('[TAP] Current cursor position:', this.cursor.x, this.cursor.y)
+                    // Check if there's a finalized measurement to clear first
+                    if (this.cursor.m_p1) {
+                        console.log('[TAP] ✓ Clearing finalized measurement')
+                        this.comp.$emit('cursor-changed', {
+                            mode: 'aim',
+                            x: this.cursor.x,
+                            y: this.cursor.y,
+                            handle_x: this.cursor.handle_x,
+                            handle_y: this.cursor.handle_y,
+                            measuring: false,
+                            m_p1: null,
+                            m_p2: null
+                        })
+                        console.log('[TAP] ✓ Finalized measurement cleared - tap again to start new measurement')
+                    } else {
+                        // No finalized measurement - start new measurement
+                        console.log('[TAP] ✓ Starting new measurement')
+                        console.log('[TAP] Current cursor position:', this.cursor.x, this.cursor.y)
 
-                    // Use current crosshair screen position
-                    // If cursor position is invalid, skip measurement
-                    if (this.cursor.x == null || isNaN(this.cursor.x) ||
-                        this.cursor.y == null || isNaN(this.cursor.y)) {
-                        console.log('[TAP] ✗ Cannot start measurement - invalid cursor position')
-                        return
+                        // Use current crosshair screen position
+                        // If cursor position is invalid, skip measurement
+                        if (this.cursor.x == null || isNaN(this.cursor.x) ||
+                            this.cursor.y == null || isNaN(this.cursor.y)) {
+                            console.log('[TAP] ✗ Cannot start measurement - invalid cursor position')
+                            return
+                        }
+
+                        // Clear panend timestamp when starting new measurement
+                        this.measurement_panend_timestamp = null
+
+                        const t = layout.screen2t(this.cursor.x)
+                        const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
+
+                        this.comp.$emit('cursor-changed', {
+                            mode: 'aim',
+                            x: this.cursor.x,      // Maintain cursor position
+                            y: this.cursor.y,
+                            handle_x: this.cursor.handle_x,
+                            handle_y: this.cursor.handle_y,
+                            measuring: true,
+                            m_p1: [t, y$],
+                            m_p2: [t, y$]
+                        })
+                        console.log('[TAP] ✓ Emitted cursor-changed with mode=aim, measuring=true, x:', this.cursor.x, 'y:', this.cursor.y)
                     }
-
-                    // Clear panend timestamp when starting new measurement
-                    this.measurement_panend_timestamp = null
-
-                    const t = layout.screen2t(this.cursor.x)
-                    const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
-
-                    this.comp.$emit('cursor-changed', {
-                        mode: 'aim',
-                        x: this.cursor.x,      // Maintain cursor position
-                        y: this.cursor.y,
-                        handle_x: this.cursor.handle_x,
-                        handle_y: this.cursor.handle_y,
-                        measuring: true,
-                        m_p1: [t, y$],
-                        m_p2: [t, y$]
-                    })
-                    console.log('[TAP] ✓ Emitted cursor-changed with mode=aim, measuring=true, x:', this.cursor.x, 'y:', this.cursor.y)
                 } else {
                     console.log('[TAP] ✓ Finalizing measurement - locking it')
 
