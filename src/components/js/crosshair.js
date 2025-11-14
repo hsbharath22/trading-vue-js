@@ -120,7 +120,6 @@ export default class Crosshair {
         const lines = [priceText]  // Removed timeText
         const lineHeight = 18
         const textPadding = 15  // Padding from box edge
-        const horizontalPadding = 10  // Padding from right edge
 
         // Determine measurement direction
         const dir = Math.sign(y2 - y1)
@@ -132,8 +131,8 @@ export default class Crosshair {
         const baseY = y2
         const textOffset = dir > 0 ? textPadding : -(textPadding + lineHeight * (lines.length - 1))
 
-        // Use right edge (x2) with padding instead of center (xm)
-        const textX = x2 - horizontalPadding
+        // Use right edge (x2) directly - textAlign 'right' ensures text ends at x2
+        const textX = x2
 
         // Draw text directly without background
         ctx.globalAlpha = 1
