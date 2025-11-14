@@ -321,13 +321,18 @@ export default class Grid {
 
             // Track press timestamp to prevent immediate tap trigger
             this.press_timestamp = Utils.now()
+
+            // Refresh cursor reference to ensure we have latest value
+            this.cursor = this.comp.$props.cursor
+
             console.log('[PRESS] Grid ID:', this.id, 'timestamp:', this.press_timestamp)
-            console.log('[PRESS] Current mode:', this.cursor.mode, 'measuring:', this.cursor.measuring, 'm_p1:', this.cursor.m_p1)
+            console.log('[PRESS] Current mode:', this.cursor.mode, 'measuring:', this.cursor.measuring, 'm_p1:', this.cursor.m_p1, 'm_p2:', this.cursor.m_p2)
 
             // If already in aim mode, exit aim mode (whether actively measuring or has finalized measurement)
             if (this.cursor.mode === 'aim') {
                 // Exit aim mode on long press, but keep measurement box if one exists
                 console.log('[PRESS] ✓ Exiting aim mode, clearing crosshair, keeping measurement if exists')
+                console.log('[PRESS] Measurement state - m_p1:', this.cursor.m_p1, 'm_p2:', this.cursor.m_p2)
                 this.comp.$emit('cursor-changed', {
                     mode: 'explore',
                     x: null,
