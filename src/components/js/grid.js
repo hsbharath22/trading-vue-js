@@ -142,17 +142,30 @@ export default class Grid {
         mc.on('tap', event => {
             if (!Utils.is_mobile) return
 
-            // If in aim mode, handle measurement (no timestamp check for aim mode)
-            if (this.cursor.mode === 'aim') {
+            // Refresh cursor reference to ensure we have latest value
+            this.cursor = this.comp.$props.cursor
+
+            console.log('[TAP] Grid ID:', this.id)
+            console.log('[TAP] cursor object:', this.cursor)
+            console.log('[TAP] mode:', this.cursor?.mode, 'measuring:', this.cursor?.measuring)
+            console.log('[TAP] press_timestamp:', this.press_timestamp, 'time_since_press:', this.press_timestamp ? (Utils.now() - this.press_timestamp) : 'N/A')
+
+            // If in aim mode, handle measurement
+            if (this.cursor && this.cursor.mode === 'aim') {
+                console.log('[TAP] ✓ Entered aim mode block')
+
                 // Ignore tap immediately after press when not measuring (prevent exit on finger lift)
                 if (!this.cursor.measuring && this.press_timestamp &&
                     (Utils.now() - this.press_timestamp < 500)) {
+                    console.log('[TAP] ✗ Blocked - too soon after press (within 500ms)')
                     return
                 }
+
                 this.calc_offset()
                 const layout = this.$p.layout.grids[this.id]
 
                 if (!this.cursor.measuring) {
+                    console.log('[TAP] ✓ Starting measurement')
                     // Start measuring - use current crosshair screen position
                     const t = layout.screen2t(this.cursor.x)
                     const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
@@ -162,7 +175,9 @@ export default class Grid {
                         m_p1: [t, y$],
                         m_p2: [t, y$]  // Initially same as p1
                     })
+                    console.log('[TAP] ✓ Emitted cursor-changed with measuring=true')
                 } else {
+                    console.log('[TAP] ✓ Finishing measurement')
                     // Finish measuring - use current crosshair screen position
                     const t = layout.screen2t(this.cursor.x)
                     const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
@@ -174,9 +189,12 @@ export default class Grid {
                     // User must long-press to exit and clear
                 }
                 this.update()
+                console.log('[TAP] ✓ Done handling in aim mode, returning')
                 return
             }
 
+            console.log('[TAP] ✗ NOT in aim mode - executing default explore mode behavior')
+            console.log('[TAP] ✗ This is the BUG - we should be in aim mode!')
             // Default tap behavior for explore mode
             this.sim_mousedown(event)
             if (this.fade) this.fade.stop()
@@ -207,9 +225,12 @@ export default class Grid {
 
             // Track press timestamp to prevent immediate tap trigger
             this.press_timestamp = Utils.now()
+            console.log('[PRESS] Grid ID:', this.id, 'timestamp:', this.press_timestamp)
+            console.log('[PRESS] Current mode:', this.cursor.mode, 'measuring:', this.cursor.measuring)
 
             // If already in aim mode with active measurement, exit aim mode
             if (this.cursor.mode === 'aim' && this.cursor.measuring) {
+                console.log('[PRESS] ✓ Exiting aim mode (was measuring)')
                 this.comp.$emit('cursor-changed', {
                     mode: 'explore',
                     handle_x: null,
@@ -224,6 +245,7 @@ export default class Grid {
 
             // If in aim mode but not measuring, ignore (don't exit)
             if (this.cursor.mode === 'aim') {
+                console.log('[PRESS] ✓ Already in aim mode, not measuring - ignoring')
                 return
             }
 
@@ -231,6 +253,7 @@ export default class Grid {
             const touch_x = event.center.x + this.offset_x
             const touch_y = event.center.y + this.offset_y + this.layout.offset
 
+            console.log('[PRESS] ✓ Entering aim mode at position:', touch_x, touch_y)
             this.comp.$emit('cursor-changed', {
                 grid_id: this.id,
                 x: touch_x,
@@ -242,6 +265,7 @@ export default class Grid {
                 m_p1: null,
                 m_p2: null
             })
+            console.log('[PRESS] ✓ Emitted cursor-changed with mode=aim')
 
             setTimeout(() => this.update())
             this.sim_mousedown(event)
