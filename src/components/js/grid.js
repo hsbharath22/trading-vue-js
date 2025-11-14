@@ -153,9 +153,9 @@ export default class Grid {
                 const layout = this.$p.layout.grids[this.id]
 
                 if (!this.cursor.measuring) {
-                    // Start measuring - place first point
-                    const t = layout.screen2t(event.center.x + this.offset_x)
-                    const y$ = layout.screen2$(event.center.y + this.offset_y)
+                    // Start measuring - use current crosshair screen position
+                    const t = layout.screen2t(this.cursor.x)
+                    const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
 
                     this.comp.$emit('cursor-changed', {
                         measuring: true,
@@ -163,14 +163,15 @@ export default class Grid {
                         m_p2: [t, y$]  // Initially same as p1
                     })
                 } else {
-                    // Finish measuring - finalize second point
+                    // Finish measuring - use current crosshair screen position
                     const t = layout.screen2t(this.cursor.x)
-                    const y$ = layout.screen2$(this.cursor.y)
+                    const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
 
                     this.comp.$emit('cursor-changed', {
-                        measuring: false,
                         m_p2: [t, y$]
                     })
+                    // Keep measuring active to show the result
+                    // User must long-press to exit and clear
                 }
                 this.update()
                 return
