@@ -208,8 +208,8 @@ export default class Grid {
             // Track press timestamp to prevent immediate tap trigger
             this.press_timestamp = Utils.now()
 
-            // If already in aim mode, exit aim mode (long-press to exit)
-            if (this.cursor.mode === 'aim') {
+            // If already in aim mode with active measurement, exit aim mode
+            if (this.cursor.mode === 'aim' && this.cursor.measuring) {
                 this.comp.$emit('cursor-changed', {
                     mode: 'explore',
                     handle_x: null,
@@ -219,6 +219,11 @@ export default class Grid {
                     m_p2: null
                 })
                 this.update()
+                return
+            }
+
+            // If in aim mode but not measuring, ignore (don't exit)
+            if (this.cursor.mode === 'aim') {
                 return
             }
 
