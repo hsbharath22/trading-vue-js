@@ -326,8 +326,8 @@ export default class Grid {
 
             // If already in aim mode, exit aim mode (whether actively measuring or has finalized measurement)
             if (this.cursor.mode === 'aim') {
-                // Always exit aim mode on long press, regardless of measurement state
-                console.log('[PRESS] ✓ Exiting aim mode and clearing crosshair')
+                // Exit aim mode on long press, but keep measurement box if one exists
+                console.log('[PRESS] ✓ Exiting aim mode, clearing crosshair, keeping measurement if exists')
                 this.comp.$emit('cursor-changed', {
                     mode: 'explore',
                     x: null,
@@ -335,8 +335,9 @@ export default class Grid {
                     handle_x: null,
                     handle_y: null,
                     measuring: false,
-                    m_p1: null,
-                    m_p2: null
+                    // Keep measurement points if they exist
+                    m_p1: this.cursor.m_p1 || null,
+                    m_p2: this.cursor.m_p2 || null
                 })
                 this.update()
                 return
