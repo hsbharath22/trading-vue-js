@@ -333,17 +333,23 @@ export default class Grid {
                 // Exit aim mode on long press, but keep measurement box if one exists
                 console.log('[PRESS] ✓ Exiting aim mode, clearing crosshair, keeping measurement if exists')
                 console.log('[PRESS] Measurement state - m_p1:', this.cursor.m_p1, 'm_p2:', this.cursor.m_p2)
-                this.comp.$emit('cursor-changed', {
+
+                // Build exit event - only include m_p1/m_p2 if they exist to preserve them
+                const exitEvent = {
                     mode: 'explore',
                     x: null,
                     y: null,
                     handle_x: null,
                     handle_y: null,
-                    measuring: false,
-                    // Keep measurement points if they exist
-                    m_p1: this.cursor.m_p1 || null,
-                    m_p2: this.cursor.m_p2 || null
-                })
+                    measuring: false
+                }
+
+                // Only add m_p1 and m_p2 to the event if they exist (don't send null)
+                // This way Chart.vue won't update them, preserving the measurement
+                if (this.cursor.m_p1) exitEvent.m_p1 = this.cursor.m_p1
+                if (this.cursor.m_p2) exitEvent.m_p2 = this.cursor.m_p2
+
+                this.comp.$emit('cursor-changed', exitEvent)
                 this.update()
                 return
             }
