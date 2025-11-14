@@ -68,10 +68,10 @@ export default class Crosshair {
         ctx.fillStyle = colors.cross + '16'  // Semi-transparent
         ctx.fillRect(x1, y1, x2 - x1, y2 - y1)
 
-        // Draw measurement box border
+        // Draw measurement box border (dashed)
         ctx.strokeStyle = colors.cross
         ctx.lineWidth = 1
-        ctx.setLineDash([])
+        ctx.setLineDash([5, 5])
         ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
 
         // Calculate center for dashed lines
