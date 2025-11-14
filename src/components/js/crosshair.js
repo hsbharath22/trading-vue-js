@@ -79,14 +79,15 @@ export default class Crosshair {
         const ym = (y1 + y2) / 2
 
         // Draw vertical dashed line
-        ctx.beginPath()
-        ctx.setLineDash([5, 5])
-        ctx.moveTo(xm, y1)
-        ctx.lineTo(xm, y2)
-        ctx.stroke()
+        // ctx.beginPath()
+        // ctx.setLineDash([5, 5])
+        // ctx.moveTo(xm, y1)
+        // ctx.lineTo(xm, y2)
+        // ctx.stroke()
 
         // Draw horizontal dashed line
         ctx.beginPath()
+        ctx.setLineDash([5, 5])
         ctx.moveTo(x1, ym)
         ctx.lineTo(x2, ym)
         ctx.stroke()
