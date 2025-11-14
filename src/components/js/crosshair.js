@@ -18,6 +18,11 @@ export default class Crosshair {
         this.layout = this.$p.layout
 
         const cursor = this.comp.$props.cursor
+
+        // Always draw measurement box if it exists, even in explore mode
+        this.draw_measurement(ctx)
+
+        // Don't draw crosshair lines in explore mode if not visible
         if (!this.visible && cursor.mode === 'explore') return
 
         this.x = this.$p.cursor.x
@@ -39,9 +44,6 @@ export default class Crosshair {
         ctx.lineTo(this.x, this.layout.height)
         ctx.stroke()
         ctx.restore()
-
-        // Draw mobile measurement if active
-        this.draw_measurement(ctx)
 
     }
 
