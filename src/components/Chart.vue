@@ -93,12 +93,18 @@ export default {
 
             if (e.mode) this.cursor.mode = e.mode
 
-            // Explicitly update cursor position if provided and valid
-            if (e.x !== undefined && e.x !== null && !isNaN(e.x)) {
-                this.cursor.x = e.x
+            // Explicitly update cursor position if provided (allow null for clearing, reject NaN)
+            if (e.x !== undefined) {
+                // Allow null to clear position, but reject NaN values
+                if (e.x === null || !isNaN(e.x)) {
+                    this.cursor.x = e.x
+                }
             }
-            if (e.y !== undefined && e.y !== null && !isNaN(e.y)) {
-                this.cursor.y = e.y
+            if (e.y !== undefined) {
+                // Allow null to clear position, but reject NaN values
+                if (e.y === null || !isNaN(e.y)) {
+                    this.cursor.y = e.y
+                }
             }
             if (e.handle_x !== undefined) this.cursor.handle_x = e.handle_x
             if (e.handle_y !== undefined) this.cursor.handle_y = e.handle_y
