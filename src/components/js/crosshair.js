@@ -116,17 +116,13 @@ export default class Crosshair {
         const dir = Math.sign(y2 - y1)
         const y = y2
 
-        // Draw background box for text
+        // Calculate text dimensions for positioning
         const lines = [priceText, timeText]
         const lineHeight = 18
         const w = Math.max(...lines.map(l => ctx.measureText(l).width + 20), 100)
         const h = lineHeight * lines.length
 
-        ctx.fillStyle = colors.back || '#000'
-        ctx.globalAlpha = 0.9
-        ctx.fillRect(xm - w/2, y - (10 + h) * dir, w, h * dir)
-
-        // Draw text
+        // Draw text directly without background
         ctx.globalAlpha = 1
         ctx.fillStyle = colors.text
         lines.forEach((line, i) => {
