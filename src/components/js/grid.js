@@ -160,7 +160,7 @@ export default class Grid {
             // Track when pan ends during measurement to prevent accidental tap detection
             if (this.cursor.mode === 'aim' && this.cursor.measuring && this.aim_drag) {
                 this.measurement_panend_timestamp = Utils.now()
-                console.log('[PANEND] During measurement - blocking tap for 300ms')
+                console.log('[PANEND] During measurement - blocking tap for 150ms')
             }
 
             this.drug = null
@@ -194,8 +194,8 @@ export default class Grid {
 
                 // Ignore tap immediately after panend when measuring (finger lift after drag)
                 if (this.cursor.measuring && this.measurement_panend_timestamp &&
-                    (Utils.now() - this.measurement_panend_timestamp < 300)) {
-                    console.log('[TAP] ✗ Blocked - finger lift after drag (within 300ms of panend)')
+                    (Utils.now() - this.measurement_panend_timestamp < 150)) {
+                    console.log('[TAP] ✗ Blocked - finger lift after drag (within 150ms of panend)')
                     return
                 }
 
