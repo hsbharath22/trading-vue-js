@@ -142,13 +142,13 @@ export default class Grid {
         mc.on('tap', event => {
             if (!Utils.is_mobile) return
 
-            // Ignore tap immediately after press (prevent accidental trigger when lifting finger)
-            if (this.press_timestamp && (Utils.now() - this.press_timestamp < 500)) {
-                return
-            }
-
-            // If in aim mode, handle measurement
+            // If in aim mode, handle measurement (no timestamp check for aim mode)
             if (this.cursor.mode === 'aim') {
+                // Ignore tap immediately after press when not measuring (prevent exit on finger lift)
+                if (!this.cursor.measuring && this.press_timestamp &&
+                    (Utils.now() - this.press_timestamp < 500)) {
+                    return
+                }
                 this.calc_offset()
                 const layout = this.$p.layout.grids[this.id]
 
