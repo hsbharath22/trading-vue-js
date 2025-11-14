@@ -137,13 +137,15 @@ export default class Grid {
                     handle_y: current_touch_y
                 }
 
-                // If measuring, also include m_p2 in the SAME event
+                // If actively measuring, update m_p2 with drag movement
                 if (this.cursor.measuring) {
                     const layout = this.$p.layout.grids[this.id]
                     const t = layout.screen2t(new_cross_x)
                     const y$ = layout.screen2$(new_cross_y)
                     cursorEvent.m_p2 = [t, y$]
                 }
+                // If measurement is finalized (measuring: false), crosshair still moves
+                // but measurement box stays locked (m_p2 not updated)
 
                 // Single emission with all data
                 this.comp.$emit('cursor-changed', cursorEvent)
@@ -230,16 +232,16 @@ export default class Grid {
                     })
                     console.log('[TAP] ✓ Emitted cursor-changed with mode=aim, measuring=true, x:', this.cursor.x, 'y:', this.cursor.y)
                 } else {
-                    console.log('[TAP] ✓ Finishing measurement')
+                    console.log('[TAP] ✓ Finalizing measurement - locking it')
 
                     // Use current crosshair screen position
                     if (this.cursor.x == null || isNaN(this.cursor.x) ||
                         this.cursor.y == null || isNaN(this.cursor.y)) {
-                        console.log('[TAP] ✗ Cannot finish measurement - invalid cursor position')
+                        console.log('[TAP] ✗ Cannot finalize measurement - invalid cursor position')
                         return
                     }
 
-                    // Clear panend timestamp when finishing measurement
+                    // Clear panend timestamp when finalizing measurement
                     this.measurement_panend_timestamp = null
 
                     const t = layout.screen2t(this.cursor.x)
@@ -251,10 +253,12 @@ export default class Grid {
                         y: this.cursor.y,
                         handle_x: this.cursor.handle_x,
                         handle_y: this.cursor.handle_y,
-                        m_p2: [t, y$]
+                        measuring: false,      // Lock measurement - can't drag anymore
+                        m_p2: [t, y$]          // Keep m_p1 and m_p2 to display measurement
                     })
-                    // Keep measuring active to show the result
-                    // User must long-press to exit and clear
+                    console.log('[TAP] ✓ Measurement finalized and locked')
+                    // Measurement is now locked and displayed
+                    // User must long-press to exit aim mode and clear
                 }
                 this.update()
                 console.log('[TAP] ✓ Done handling in aim mode, returning')
