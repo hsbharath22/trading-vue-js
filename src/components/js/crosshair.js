@@ -116,16 +116,22 @@ export default class Crosshair {
         // Calculate text dimensions
         const lines = [priceText, timeText]
         const lineHeight = 18
+        const textPadding = 15  // Padding from box edge
 
-        // Position text outside (below) the measurement box
-        const bottomY = Math.max(y1, y2)
-        const textStartY = bottomY + 15  // 15px padding below the box
+        // Determine measurement direction
+        const dir = Math.sign(y2 - y1)
+
+        // Position text outside the box based on direction
+        // If measuring downward (dir > 0), place text below bottom edge
+        // If measuring upward (dir < 0), place text above top edge
+        const baseY = dir > 0 ? y2 : y1
+        const textOffset = dir > 0 ? textPadding : -(textPadding + lineHeight * (lines.length - 1))
 
         // Draw text directly without background
         ctx.globalAlpha = 1
         ctx.fillStyle = colors.text
         lines.forEach((line, i) => {
-            ctx.fillText(line, xm, textStartY + lineHeight * i)
+            ctx.fillText(line, xm, baseY + textOffset + lineHeight * i)
         })
     }
 
