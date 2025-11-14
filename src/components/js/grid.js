@@ -141,6 +141,13 @@ export default class Grid {
             if (Utils.is_mobile && this.drug) {
                 this.pan_fade(event)
             }
+
+            // Track when pan ends during measurement to prevent accidental tap detection
+            if (this.cursor.mode === 'aim' && this.cursor.measuring && this.aim_drag) {
+                this.measurement_panend_timestamp = Utils.now()
+                console.log('[PANEND] During measurement - blocking tap for 300ms')
+            }
+
             this.drug = null
             this.aim_drag = null
             this.comp.$emit('cursor-locked', false)
@@ -170,6 +177,13 @@ export default class Grid {
                     return
                 }
 
+                // Ignore tap immediately after panend when measuring (finger lift after drag)
+                if (this.cursor.measuring && this.measurement_panend_timestamp &&
+                    (Utils.now() - this.measurement_panend_timestamp < 300)) {
+                    console.log('[TAP] ✗ Blocked - finger lift after drag (within 300ms of panend)')
+                    return
+                }
+
                 this.calc_offset()
                 const layout = this.$p.layout.grids[this.id]
 
@@ -184,6 +198,9 @@ export default class Grid {
                         console.log('[TAP] ✗ Cannot start measurement - invalid cursor position')
                         return
                     }
+
+                    // Clear panend timestamp when starting new measurement
+                    this.measurement_panend_timestamp = null
 
                     const t = layout.screen2t(this.cursor.x)
                     const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
@@ -208,6 +225,9 @@ export default class Grid {
                         console.log('[TAP] ✗ Cannot finish measurement - invalid cursor position')
                         return
                     }
+
+                    // Clear panend timestamp when finishing measurement
+                    this.measurement_panend_timestamp = null
 
                     const t = layout.screen2t(this.cursor.x)
                     const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
