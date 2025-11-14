@@ -4,12 +4,12 @@ This document explains the mobile-friendly crosshair control feature implemented
 
 ## Overview
 
-On mobile devices, the standard crosshair behavior of appearing exactly under your finger obscures the data you're trying to see. This feature implements an offset control handle similar to TradingView's mobile version, where:
+On mobile devices, the standard crosshair behavior of appearing exactly under your finger obscures the data you're trying to see. This feature implements a relative control system similar to TradingView's mobile version, where:
 
 1. **Control Handle**: A draggable circle appears at your touch point
-2. **Offset Crosshair**: The actual crosshair appears at an offset position above and to the left of your finger
+2. **Independent Crosshair**: The crosshair can be positioned anywhere on the chart
 3. **Connection Line**: A dashed line connects the handle to the crosshair for visual clarity
-4. **Smooth Dragging**: Move your finger and both the handle and crosshair move together
+4. **Relative Dragging**: Touch anywhere on the screen to control the crosshair - it moves relative to your drag motion
 
 ## How It Works
 
@@ -17,8 +17,8 @@ On mobile devices, the standard crosshair behavior of appearing exactly under yo
 
 On mobile devices:
 - **Long-press** (press and hold) anywhere on the chart to activate "aim" mode
-- The crosshair appears at an offset position from your touch point
-- A control handle (circle) appears at your touch location
+- The crosshair appears at the long-press location
+- A control handle (circle) also appears at the same location
 - A dashed connection line links the handle to the crosshair
 
 ### Deactivation
@@ -28,20 +28,19 @@ On mobile devices:
 
 ### While Active
 
-- **Drag** your finger to move both the handle and crosshair together
-- The crosshair maintains the same offset relative to your touch point
+- **Touch anywhere** on the screen to start dragging
+- The crosshair moves by the **same amount** as your finger movement (relative control)
+- The handle always shows your current touch position
+- You can lift your finger and touch elsewhere to continue controlling the crosshair
 - The crosshair position is clamped within chart bounds
+- **You don't have to touch the crosshair itself** - control it from anywhere on the screen!
 
 ## Configuration
 
-You can customize the mobile crosshair behavior via the chart configuration:
+You can customize the visual styling of the mobile crosshair via the chart configuration:
 
 ```javascript
 const chartConfig = {
-  // Distance crosshair appears from touch point (negative = left/up)
-  MOBILE_CURSOR_OFFSET_X: -50,   // px, default: -50
-  MOBILE_CURSOR_OFFSET_Y: -120,  // px, default: -120
-
   // Visual styling
   MOBILE_CURSOR_HANDLE_R: 10,    // Handle radius in px, default: 10
   MOBILE_CURSOR_LINE_W: 1.5,     // Connection line width, default: 1.5
@@ -52,10 +51,10 @@ const chartConfig = {
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `MOBILE_CURSOR_OFFSET_X` | number | -50 | Horizontal offset in pixels. Negative values move crosshair left of touch point |
-| `MOBILE_CURSOR_OFFSET_Y` | number | -120 | Vertical offset in pixels. Negative values move crosshair above touch point |
 | `MOBILE_CURSOR_HANDLE_R` | number | 10 | Radius of the control handle circle in pixels |
 | `MOBILE_CURSOR_LINE_W` | number | 1.5 | Width of the connection line in pixels |
+
+**Note:** The older `MOBILE_CURSOR_OFFSET_X` and `MOBILE_CURSOR_OFFSET_Y` parameters are deprecated and no longer used in the relative control mode.
 
 ## Usage Example
 
@@ -80,9 +79,7 @@ export default {
       width: window.innerWidth,
       height: window.innerHeight,
       config: {
-        // Customize mobile crosshair behavior
-        MOBILE_CURSOR_OFFSET_X: -60,
-        MOBILE_CURSOR_OFFSET_Y: -100,
+        // Customize mobile crosshair styling
         MOBILE_CURSOR_HANDLE_R: 12,
         MOBILE_CURSOR_LINE_W: 2
       }
@@ -97,13 +94,17 @@ export default {
 ### Files Modified
 
 1. **src/stuff/constants.js**
-   - Added configuration constants for mobile crosshair offset and styling
+   - Added configuration constants for mobile crosshair styling
 
 2. **src/components/Chart.vue**
    - Extended cursor state to track handle position (`handle_x`, `handle_y`)
 
 3. **src/components/js/grid.js**
-   - Modified `emit_cursor_coord()` to calculate offset positions on mobile
+   - Added `emit_cursor_coord_relative()` method for relative positioning
+   - Modified `panstart` handler to track initial crosshair and touch positions
+   - Updated `panmove` handler to calculate drag deltas and apply relative movement
+   - Updated `panend` handler to clear drag tracking state
+   - Modified `press` handler to initialize crosshair at press location
    - Updated tap handler to clear handle position when exiting aim mode
    - Added automatic clamping to keep crosshair within chart bounds
 
@@ -123,19 +124,37 @@ The library uses three cursor modes:
 
 ### Event Flow
 
+**Initial Activation:**
 ```
 Long-press on mobile
     ↓
 Grid.js detects 'press' event
     ↓
-emit_cursor_coord() calculates offset positions
+Emits cursor-changed with initial position (crosshair = handle)
     ↓
-Emits cursor-changed with x, y, handle_x, handle_y
+Chart.vue updates cursor state to 'aim' mode
+    ↓
+Crosshair.vue renders crosshair + handle at same location
+```
+
+**Dragging:**
+```
+User touches and drags
+    ↓
+Grid.js detects 'panstart' → stores initial positions
+    ↓
+Grid.js detects 'panmove' → calculates drag delta
+    ↓
+emit_cursor_coord_relative() applies delta to crosshair
+    ↓
+Emits cursor-changed with new crosshair position and current handle position
     ↓
 Chart.vue updates cursor state
     ↓
-Crosshair.vue renders crosshair + handle
+Crosshair.vue renders crosshair at new position, handle at touch point
 ```
+
+**Key Insight:** The crosshair position changes by the drag delta, not by jumping to an offset from the touch point. This allows you to touch anywhere on the screen to control the crosshair.
 
 ## Visual Elements
 
@@ -171,10 +190,12 @@ This is handled automatically by `Utils.is_mobile` in `src/stuff/utils.js`.
 ## Benefits
 
 1. **Improved Visibility**: Crosshair doesn't hide under your finger
-2. **Precise Control**: See exactly what data point you're selecting
-3. **Familiar UX**: Matches TradingView mobile behavior
-4. **Configurable**: Adjust offset and styling to your needs
-5. **Non-intrusive**: Only active when you long-press; doesn't interfere with normal pan/zoom
+2. **Touch Anywhere**: Control the crosshair from any position on the screen
+3. **Precise Control**: See exactly what data point you're selecting
+4. **Familiar UX**: Matches TradingView mobile behavior with relative dragging
+5. **Flexible Positioning**: Crosshair can be anywhere, not limited by fixed offsets
+6. **Configurable**: Adjust styling to your needs
+7. **Non-intrusive**: Only active when you long-press; doesn't interfere with normal pan/zoom
 
 ## Browser Compatibility
 

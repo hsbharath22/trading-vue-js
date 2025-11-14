@@ -54,7 +54,14 @@ export default class Grid {
         mc.on('panstart', event => {
             if (this.cursor.scroll_lock) return
             if (this.cursor.mode === 'aim') {
-                return this.emit_cursor_coord(event)
+                // Store initial crosshair and touch positions for relative dragging
+                this.aim_drag = {
+                    start_touch_x: event.center.x + this.offset_x,
+                    start_touch_y: event.center.y + this.offset_y,
+                    start_cross_x: this.cursor.x,
+                    start_cross_y: this.cursor.y
+                }
+                return
             }
             let tfrm = this.$p.y_transform
             this.drug = {
@@ -92,8 +99,20 @@ export default class Grid {
                     x: event.center.x + this.offset_x,
                     y: event.center.y + this.offset_y
                 })
-            } else if (this.cursor.mode === 'aim') {
-                this.emit_cursor_coord(event)
+            } else if (this.cursor.mode === 'aim' && this.aim_drag) {
+                // Relative dragging: move crosshair by touch delta
+                const current_touch_x = event.center.x + this.offset_x
+                const current_touch_y = event.center.y + this.offset_y
+
+                const delta_x = current_touch_x - this.aim_drag.start_touch_x
+                const delta_y = current_touch_y - this.aim_drag.start_touch_y
+
+                this.emit_cursor_coord_relative(
+                    current_touch_x,
+                    current_touch_y,
+                    this.aim_drag.start_cross_x + delta_x,
+                    this.aim_drag.start_cross_y + delta_y
+                )
             }
         })
 
@@ -102,6 +121,7 @@ export default class Grid {
                 this.pan_fade(event)
             }
             this.drug = null
+            this.aim_drag = null
             this.comp.$emit('cursor-locked', false)
         })
 
@@ -141,7 +161,20 @@ export default class Grid {
             if (!Utils.is_mobile) return
             if (this.fade) this.fade.stop()
             this.calc_offset()
-            this.emit_cursor_coord(event, { mode: 'aim' })
+
+            // Initialize crosshair at press location
+            const touch_x = event.center.x + this.offset_x
+            const touch_y = event.center.y + this.offset_y + this.layout.offset
+
+            this.comp.$emit('cursor-changed', {
+                grid_id: this.id,
+                x: touch_x,
+                y: touch_y,
+                handle_x: touch_x,
+                handle_y: touch_y,
+                mode: 'aim'
+            })
+
             setTimeout(() => this.update())
             this.sim_mousedown(event)
         })
@@ -223,40 +256,33 @@ export default class Grid {
     }
 
     emit_cursor_coord(event, add = {}) {
-        // For mobile 'aim' mode with offset control
-        if (Utils.is_mobile && (add.mode === 'aim' || this.cursor.mode === 'aim')) {
-            const handle_x = event.center.x + this.offset_x
-            const handle_y = event.center.y + this.offset_y + this.layout.offset
+        // Desktop or explore mode - direct position
+        this.comp.$emit('cursor-changed', Object.assign({
+            grid_id: this.id,
+            x: event.center.x + this.offset_x,
+            y: event.center.y + this.offset_y + this.layout.offset
+        }, add))
+    }
 
-            // Calculate offset crosshair position
-            const offset_x = this.$p.config.MOBILE_CURSOR_OFFSET_X || -50
-            const offset_y = this.$p.config.MOBILE_CURSOR_OFFSET_Y || -120
+    // Emit cursor coordinates with relative control (mobile aim mode)
+    emit_cursor_coord_relative(handle_x, handle_y, cross_x, cross_y) {
+        // Clamp crosshair position within bounds
+        const clamped_x = Math.max(0, Math.min(
+            this.layout.width,
+            cross_x
+        ))
+        const clamped_y = Math.max(0, Math.min(
+            this.layout.height + this.layout.offset,
+            cross_y
+        ))
 
-            // Clamp crosshair position within bounds
-            const cross_x = Math.max(0, Math.min(
-                this.layout.width,
-                handle_x + offset_x
-            ))
-            const cross_y = Math.max(0, Math.min(
-                this.layout.height + this.layout.offset,
-                handle_y + offset_y
-            ))
-
-            this.comp.$emit('cursor-changed', Object.assign({
-                grid_id: this.id,
-                x: cross_x,
-                y: cross_y,
-                handle_x: handle_x,
-                handle_y: handle_y
-            }, add))
-        } else {
-            // Desktop or explore mode - direct position
-            this.comp.$emit('cursor-changed', Object.assign({
-                grid_id: this.id,
-                x: event.center.x + this.offset_x,
-                y: event.center.y + this.offset_y + this.layout.offset
-            }, add))
-        }
+        this.comp.$emit('cursor-changed', {
+            grid_id: this.id,
+            x: clamped_x,
+            y: clamped_y,
+            handle_x: handle_x,
+            handle_y: handle_y
+        })
     }
 
     pan_fade(event) {
