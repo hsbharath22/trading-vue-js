@@ -142,6 +142,8 @@ export default class Grid {
         mc.on('tap', event => {
             if (!Utils.is_mobile) return
 
+            console.log('========== TAP EVENT START [Grid ' + this.id + '] ==========')
+
             // Refresh cursor reference to ensure we have latest value
             this.cursor = this.comp.$props.cursor
 
@@ -171,11 +173,12 @@ export default class Grid {
                     const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
 
                     this.comp.$emit('cursor-changed', {
+                        mode: 'aim',  // Explicitly maintain aim mode
                         measuring: true,
                         m_p1: [t, y$],
                         m_p2: [t, y$]  // Initially same as p1
                     })
-                    console.log('[TAP] ✓ Emitted cursor-changed with measuring=true')
+                    console.log('[TAP] ✓ Emitted cursor-changed with mode=aim, measuring=true')
                 } else {
                     console.log('[TAP] ✓ Finishing measurement')
                     // Finish measuring - use current crosshair screen position
@@ -183,6 +186,7 @@ export default class Grid {
                     const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
 
                     this.comp.$emit('cursor-changed', {
+                        mode: 'aim',  // Keep in aim mode
                         m_p2: [t, y$]
                     })
                     // Keep measuring active to show the result
@@ -190,16 +194,20 @@ export default class Grid {
                 }
                 this.update()
                 console.log('[TAP] ✓ Done handling in aim mode, returning')
+                // Prevent event from propagating to other handlers
+                if (event.srcEvent) event.srcEvent.stopPropagation()
+                event.preventDefault()
                 return
             }
 
             console.log('[TAP] ✗ NOT in aim mode - executing default explore mode behavior')
-            console.log('[TAP] ✗ This is the BUG - we should be in aim mode!')
+            console.log('[TAP] ✗ cursor.mode is:', this.cursor?.mode)
             // Default tap behavior for explore mode
             this.sim_mousedown(event)
             if (this.fade) this.fade.stop()
             this.comp.$emit('cursor-changed', {})
             this.update()
+            console.log('========== TAP EVENT END [Grid ' + this.id + '] ==========')
         })
 
         mc.on('pinchstart', () =>  {
