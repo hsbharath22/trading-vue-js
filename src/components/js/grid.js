@@ -141,7 +141,7 @@ export default class Grid {
                 if (this.cursor.measuring) {
                     const layout = this.$p.layout.grids[this.id]
                     const t = layout.screen2t(new_cross_x)
-                    const y$ = layout.screen2$(new_cross_y)
+                    const y$ = layout.screen2$(new_cross_y - this.layout.offset)
                     cursorEvent.m_p2 = [t, y$]
                 }
                 // If measurement is finalized (measuring: false), crosshair still moves
