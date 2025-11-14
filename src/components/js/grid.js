@@ -254,7 +254,8 @@ export default class Grid {
                         handle_x: this.cursor.handle_x,
                         handle_y: this.cursor.handle_y,
                         measuring: false,      // Lock measurement - can't drag anymore
-                        m_p2: [t, y$]          // Keep m_p1 and m_p2 to display measurement
+                        m_p1: this.cursor.m_p1,  // Keep m_p1 (first point)
+                        m_p2: [t, y$]            // Update m_p2 (second point)
                     })
                     console.log('[TAP] ✓ Measurement finalized and locked')
                     // Measurement is now locked and displayed
@@ -302,27 +303,28 @@ export default class Grid {
             // Track press timestamp to prevent immediate tap trigger
             this.press_timestamp = Utils.now()
             console.log('[PRESS] Grid ID:', this.id, 'timestamp:', this.press_timestamp)
-            console.log('[PRESS] Current mode:', this.cursor.mode, 'measuring:', this.cursor.measuring)
+            console.log('[PRESS] Current mode:', this.cursor.mode, 'measuring:', this.cursor.measuring, 'm_p1:', this.cursor.m_p1)
 
-            // If already in aim mode with active measurement, exit aim mode
-            if (this.cursor.mode === 'aim' && this.cursor.measuring) {
-                console.log('[PRESS] ✓ Exiting aim mode (was measuring)')
-                this.comp.$emit('cursor-changed', {
-                    mode: 'explore',
-                    handle_x: null,
-                    handle_y: null,
-                    measuring: false,
-                    m_p1: null,
-                    m_p2: null
-                })
-                this.update()
-                return
-            }
-
-            // If in aim mode but not measuring, ignore (don't exit)
+            // If already in aim mode, exit aim mode (whether actively measuring or has finalized measurement)
             if (this.cursor.mode === 'aim') {
-                console.log('[PRESS] ✓ Already in aim mode, not measuring - ignoring')
-                return
+                // Exit if actively measuring OR has a finalized measurement (m_p1 exists)
+                if (this.cursor.measuring || this.cursor.m_p1) {
+                    console.log('[PRESS] ✓ Exiting aim mode (was measuring or had finalized measurement)')
+                    this.comp.$emit('cursor-changed', {
+                        mode: 'explore',
+                        handle_x: null,
+                        handle_y: null,
+                        measuring: false,
+                        m_p1: null,
+                        m_p2: null
+                    })
+                    this.update()
+                    return
+                } else {
+                    // In aim mode but no measurement at all - just ignore the press
+                    console.log('[PRESS] ✓ Already in aim mode, no measurement - ignoring')
+                    return
+                }
             }
 
             // Initialize crosshair at press location (enter aim mode)
