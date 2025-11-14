@@ -359,17 +359,23 @@ export default class Grid {
             const touch_y = event.center.y + this.offset_y + this.layout.offset
 
             console.log('[PRESS] ✓ Entering aim mode at position:', touch_x, touch_y)
-            this.comp.$emit('cursor-changed', {
+
+            // Build enter event - preserve existing measurement if any
+            const enterEvent = {
                 grid_id: this.id,
                 x: touch_x,
                 y: touch_y,
                 handle_x: touch_x,
                 handle_y: touch_y,
                 mode: 'aim',
-                measuring: false,
-                m_p1: null,
-                m_p2: null
-            })
+                measuring: false
+            }
+
+            // Preserve measurement points if they exist
+            if (this.cursor.m_p1) enterEvent.m_p1 = this.cursor.m_p1
+            if (this.cursor.m_p2) enterEvent.m_p2 = this.cursor.m_p2
+
+            this.comp.$emit('cursor-changed', enterEvent)
             console.log('[PRESS] ✓ Emitted cursor-changed with mode=aim')
 
             setTimeout(() => this.update())
