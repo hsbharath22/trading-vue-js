@@ -55,11 +55,18 @@ export default class Grid {
             if (this.cursor.scroll_lock) return
             if (this.cursor.mode === 'aim') {
                 // Store initial crosshair and touch positions for relative dragging
-                this.aim_drag = {
-                    start_touch_x: event.center.x + this.offset_x,
-                    start_touch_y: event.center.y + this.offset_y,
-                    start_cross_x: this.cursor.x,
-                    start_cross_y: this.cursor.y
+                // Only store if we have valid cursor position (not NaN or null)
+                if (this.cursor.x != null && !isNaN(this.cursor.x) &&
+                    this.cursor.y != null && !isNaN(this.cursor.y)) {
+                    this.aim_drag = {
+                        start_touch_x: event.center.x + this.offset_x,
+                        start_touch_y: event.center.y + this.offset_y,
+                        start_cross_x: this.cursor.x,
+                        start_cross_y: this.cursor.y
+                    }
+                    console.log('[PANSTART] Stored aim_drag state:', this.aim_drag)
+                } else {
+                    console.log('[PANSTART] Skipping aim_drag - invalid cursor position:', this.cursor.x, this.cursor.y)
                 }
                 return
             }
@@ -366,6 +373,12 @@ export default class Grid {
 
     // Emit cursor coordinates with relative control (mobile aim mode)
     emit_cursor_coord_relative(handle_x, handle_y, cross_x, cross_y) {
+        // Validate inputs - don't emit NaN values
+        if (isNaN(cross_x) || isNaN(cross_y)) {
+            console.log('[emit_cursor_coord_relative] Skipping emit - NaN values:', cross_x, cross_y)
+            return
+        }
+
         // Clamp crosshair position within bounds
         const clamped_x = Math.max(0, Math.min(
             this.layout.width,
