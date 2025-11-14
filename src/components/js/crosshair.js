@@ -113,13 +113,14 @@ export default class Crosshair {
 
         // Setup text style
         ctx.font = this.$p.font
-        ctx.textAlign = 'center'
+        ctx.textAlign = 'right'  // Align to right end
         ctx.fillStyle = colors.text
 
         // Calculate text dimensions - only show price text, not time
         const lines = [priceText]  // Removed timeText
         const lineHeight = 18
         const textPadding = 15  // Padding from box edge
+        const horizontalPadding = 10  // Padding from right edge
 
         // Determine measurement direction
         const dir = Math.sign(y2 - y1)
@@ -131,11 +132,14 @@ export default class Crosshair {
         const baseY = y2
         const textOffset = dir > 0 ? textPadding : -(textPadding + lineHeight * (lines.length - 1))
 
+        // Use right edge (x2) with padding instead of center (xm)
+        const textX = x2 - horizontalPadding
+
         // Draw text directly without background
         ctx.globalAlpha = 1
         ctx.fillStyle = colors.text
         lines.forEach((line, i) => {
-            ctx.fillText(line, xm, baseY + textOffset + lineHeight * i)
+            ctx.fillText(line, textX, baseY + textOffset + lineHeight * i)
         })
     }
 
