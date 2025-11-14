@@ -40,61 +40,6 @@ export default class Crosshair {
         ctx.stroke()
         ctx.restore()
 
-        // Draw mobile control handle and connection line
-        this.draw_mobile_handle(ctx)
-
-    }
-
-    draw_mobile_handle(ctx) {
-        const cursor = this.$p.cursor
-        const config = this.$p.config
-
-        // Only draw handle in 'aim' mode on mobile with handle position
-        if (cursor.mode !== 'aim' ||
-            cursor.handle_x == null ||
-            cursor.handle_y == null) {
-            return
-        }
-
-        const handle_x = cursor.handle_x
-        const handle_y = cursor.handle_y - this.layout.offset
-        const handle_r = config.MOBILE_CURSOR_HANDLE_R || 10
-        const line_w = config.MOBILE_CURSOR_LINE_W || 1.5
-
-        ctx.save()
-
-        // Draw connection line from handle to crosshair
-        ctx.strokeStyle = this.$p.colors.cross
-        ctx.lineWidth = line_w
-        ctx.setLineDash([3, 3])
-        ctx.beginPath()
-        ctx.moveTo(handle_x, handle_y)
-        ctx.lineTo(this.x, this.y)
-        ctx.stroke()
-
-        // Draw control handle (filled circle with border)
-        ctx.setLineDash([])
-        ctx.beginPath()
-        ctx.arc(handle_x, handle_y, handle_r, 0, Math.PI * 2)
-
-        // Fill with semi-transparent background
-        ctx.fillStyle = this.$p.colors.back || '#000'
-        ctx.globalAlpha = 0.8
-        ctx.fill()
-
-        // Draw border
-        ctx.globalAlpha = 1
-        ctx.strokeStyle = this.$p.colors.cross
-        ctx.lineWidth = 2
-        ctx.stroke()
-
-        // Draw center dot for better visibility
-        ctx.beginPath()
-        ctx.arc(handle_x, handle_y, 3, 0, Math.PI * 2)
-        ctx.fillStyle = this.$p.colors.cross
-        ctx.fill()
-
-        ctx.restore()
     }
 
     hide() {
