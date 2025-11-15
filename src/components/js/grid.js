@@ -54,7 +54,21 @@ export default class Grid {
         mc.on('panstart', event => {
             if (this.cursor.scroll_lock) return
             if (this.cursor.mode === 'aim') {
-                return this.emit_cursor_coord(event)
+                // Store initial crosshair and touch positions for relative dragging
+                // Only store if we have valid cursor position (not NaN or null)
+                if (this.cursor.x != null && !isNaN(this.cursor.x) &&
+                    this.cursor.y != null && !isNaN(this.cursor.y)) {
+                    this.aim_drag = {
+                        start_touch_x: event.center.x + this.offset_x,
+                        start_touch_y: event.center.y + this.offset_y,
+                        start_cross_x: this.cursor.x,
+                        start_cross_y: this.cursor.y
+                    }
+                    console.log('[PANSTART] Stored aim_drag state:', this.aim_drag)
+                } else {
+                    console.log('[PANSTART] Skipping aim_drag - invalid cursor position:', this.cursor.x, this.cursor.y)
+                }
+                return
             }
             let tfrm = this.$p.y_transform
             this.drug = {
@@ -92,8 +106,49 @@ export default class Grid {
                     x: event.center.x + this.offset_x,
                     y: event.center.y + this.offset_y
                 })
-            } else if (this.cursor.mode === 'aim') {
-                this.emit_cursor_coord(event)
+            } else if (this.cursor.mode === 'aim' && this.aim_drag) {
+                // Relative dragging: move crosshair by touch delta
+                const current_touch_x = event.center.x + this.offset_x
+                const current_touch_y = event.center.y + this.offset_y
+
+                const delta_x = current_touch_x - this.aim_drag.start_touch_x
+                const delta_y = current_touch_y - this.aim_drag.start_touch_y
+
+                const new_cross_x = this.aim_drag.start_cross_x + delta_x
+                const new_cross_y = this.aim_drag.start_cross_y + delta_y
+
+                // Validate - don't emit if positions are NaN
+                if (isNaN(new_cross_x) || isNaN(new_cross_y)) {
+                    console.log('[PANMOVE] Skipping - NaN crosshair position')
+                    return
+                }
+
+                // Clamp crosshair position within bounds
+                const clamped_x = Math.max(0, Math.min(this.layout.width, new_cross_x))
+                const clamped_y = Math.max(0, Math.min(this.layout.height + this.layout.offset, new_cross_y))
+
+                // Build event object with cursor position
+                const cursorEvent = {
+                    mode: 'aim',  // Explicitly maintain aim mode
+                    grid_id: this.id,
+                    x: clamped_x,
+                    y: clamped_y,
+                    handle_x: current_touch_x,
+                    handle_y: current_touch_y
+                }
+
+                // If actively measuring, update m_p2 with drag movement
+                if (this.cursor.measuring) {
+                    const layout = this.$p.layout.grids[this.id]
+                    const t = layout.screen2t(new_cross_x)
+                    const y$ = layout.screen2$(new_cross_y - this.layout.offset)
+                    cursorEvent.m_p2 = [t, y$]
+                }
+                // If measurement is finalized (measuring: false), crosshair still moves
+                // but measurement box stays locked (m_p2 not updated)
+
+                // Single emission with all data
+                this.comp.$emit('cursor-changed', cursorEvent)
             }
         })
 
@@ -101,22 +156,146 @@ export default class Grid {
             if (Utils.is_mobile && this.drug) {
                 this.pan_fade(event)
             }
+
+            // Track when pan ends during measurement to prevent accidental tap detection
+            if (this.cursor.mode === 'aim' && this.cursor.measuring && this.aim_drag) {
+                this.measurement_panend_timestamp = Utils.now()
+                console.log('[PANEND] During measurement - blocking tap for 150ms')
+            }
+
             this.drug = null
+            this.aim_drag = null
             this.comp.$emit('cursor-locked', false)
         })
 
         mc.on('tap', event => {
             if (!Utils.is_mobile) return
+
+            console.log('========== TAP EVENT START [Grid ' + this.id + '] ==========')
+
+            // Refresh cursor reference to ensure we have latest value
+            this.cursor = this.comp.$props.cursor
+
+            console.log('[TAP] Grid ID:', this.id)
+            console.log('[TAP] cursor object:', this.cursor)
+            console.log('[TAP] mode:', this.cursor?.mode, 'measuring:', this.cursor?.measuring)
+            console.log('[TAP] press_timestamp:', this.press_timestamp, 'time_since_press:', this.press_timestamp ? (Utils.now() - this.press_timestamp) : 'N/A')
+
+            // If in aim mode, handle measurement
+            if (this.cursor && this.cursor.mode === 'aim') {
+                console.log('[TAP] ✓ Entered aim mode block')
+
+                // Ignore tap immediately after press when not measuring (prevent exit on finger lift)
+                if (!this.cursor.measuring && this.press_timestamp &&
+                    (Utils.now() - this.press_timestamp < 500)) {
+                    console.log('[TAP] ✗ Blocked - too soon after press (within 500ms)')
+                    return
+                }
+
+                // Ignore tap immediately after panend when measuring (finger lift after drag)
+                if (this.cursor.measuring && this.measurement_panend_timestamp &&
+                    (Utils.now() - this.measurement_panend_timestamp < 150)) {
+                    console.log('[TAP] ✗ Blocked - finger lift after drag (within 150ms of panend)')
+                    return
+                }
+
+                this.calc_offset()
+                const layout = this.$p.layout.grids[this.id]
+
+                if (!this.cursor.measuring) {
+                    // Check if there's a finalized measurement to clear first
+                    if (this.cursor.m_p1) {
+                        console.log('[TAP] ✓ Clearing finalized measurement')
+                        this.comp.$emit('cursor-changed', {
+                            mode: 'aim',
+                            x: this.cursor.x,
+                            y: this.cursor.y,
+                            handle_x: this.cursor.handle_x,
+                            handle_y: this.cursor.handle_y,
+                            measuring: false,
+                            m_p1: null,
+                            m_p2: null
+                        })
+                        console.log('[TAP] ✓ Finalized measurement cleared - tap again to start new measurement')
+                    } else {
+                        // No finalized measurement - start new measurement
+                        console.log('[TAP] ✓ Starting new measurement')
+                        console.log('[TAP] Current cursor position:', this.cursor.x, this.cursor.y)
+
+                        // Use current crosshair screen position
+                        // If cursor position is invalid, skip measurement
+                        if (this.cursor.x == null || isNaN(this.cursor.x) ||
+                            this.cursor.y == null || isNaN(this.cursor.y)) {
+                            console.log('[TAP] ✗ Cannot start measurement - invalid cursor position')
+                            return
+                        }
+
+                        // Clear panend timestamp when starting new measurement
+                        this.measurement_panend_timestamp = null
+
+                        const t = layout.screen2t(this.cursor.x)
+                        const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
+
+                        this.comp.$emit('cursor-changed', {
+                            mode: 'aim',
+                            x: this.cursor.x,      // Maintain cursor position
+                            y: this.cursor.y,
+                            handle_x: this.cursor.handle_x,
+                            handle_y: this.cursor.handle_y,
+                            measuring: true,
+                            m_p1: [t, y$],
+                            m_p2: [t, y$]
+                        })
+                        console.log('[TAP] ✓ Emitted cursor-changed with mode=aim, measuring=true, x:', this.cursor.x, 'y:', this.cursor.y)
+                    }
+                } else {
+                    console.log('[TAP] ✓ Finalizing measurement - locking it')
+
+                    // Use current crosshair screen position
+                    if (this.cursor.x == null || isNaN(this.cursor.x) ||
+                        this.cursor.y == null || isNaN(this.cursor.y)) {
+                        console.log('[TAP] ✗ Cannot finalize measurement - invalid cursor position')
+                        return
+                    }
+
+                    // Clear panend timestamp when finalizing measurement
+                    this.measurement_panend_timestamp = null
+
+                    const t = layout.screen2t(this.cursor.x)
+                    const y$ = layout.screen2$(this.cursor.y - this.layout.offset)
+
+                    const finalEvent = {
+                        mode: 'aim',
+                        x: this.cursor.x,      // Maintain cursor position
+                        y: this.cursor.y,
+                        handle_x: this.cursor.handle_x,
+                        handle_y: this.cursor.handle_y,
+                        measuring: false,      // Lock measurement - can't drag anymore
+                        m_p1: this.cursor.m_p1,  // Keep m_p1 (first point)
+                        m_p2: [t, y$]            // Update m_p2 (second point)
+                    }
+                    console.log('[TAP] ✓ Finalizing with m_p1:', this.cursor.m_p1, 'm_p2:', [t, y$])
+                    this.comp.$emit('cursor-changed', finalEvent)
+                    console.log('[TAP] ✓ Measurement finalized and locked')
+                    // Measurement is now locked and displayed
+                    // User must long-press to exit aim mode and clear
+                }
+                this.update()
+                console.log('[TAP] ✓ Done handling in aim mode, returning')
+                // Prevent event from propagating to other handlers
+                if (event.srcEvent) event.srcEvent.stopPropagation()
+                event.preventDefault()
+                return
+            }
+
+            console.log('[TAP] ✗ NOT in aim mode - executing default explore mode behavior')
+            console.log('[TAP] ✗ cursor.mode is:', this.cursor?.mode)
+            // Default tap behavior for explore mode
             this.sim_mousedown(event)
             if (this.fade) this.fade.stop()
             this.comp.$emit('cursor-changed', {})
-            this.comp.$emit('cursor-changed', {
-                /*grid_id: this.id,
-                x: undefined,//event.center.x + this.offset_x,
-                y: undefined,//event.center.y + this.offset_y,*/
-                mode: 'explore'
-            })
             this.update()
+            console.log('========== TAP EVENT END [Grid ' + this.id + '] ==========')
         })
 
         mc.on('pinchstart', () =>  {
@@ -139,9 +318,69 @@ export default class Grid {
             if (!Utils.is_mobile) return
             if (this.fade) this.fade.stop()
             this.calc_offset()
-            this.emit_cursor_coord(event, { mode: 'aim' })
+
+            // Track press timestamp to prevent immediate tap trigger
+            this.press_timestamp = Utils.now()
+
+            // Refresh cursor reference to ensure we have latest value
+            this.cursor = this.comp.$props.cursor
+
+            console.log('[PRESS] Grid ID:', this.id, 'timestamp:', this.press_timestamp)
+            console.log('[PRESS] Current mode:', this.cursor.mode, 'measuring:', this.cursor.measuring, 'm_p1:', this.cursor.m_p1, 'm_p2:', this.cursor.m_p2)
+
+            // If already in aim mode, exit aim mode (whether actively measuring or has finalized measurement)
+            if (this.cursor.mode === 'aim') {
+                // Exit aim mode on long press, but keep measurement box if one exists
+                console.log('[PRESS] ✓ Exiting aim mode, clearing crosshair, keeping measurement if exists')
+                console.log('[PRESS] Measurement state - m_p1:', this.cursor.m_p1, 'm_p2:', this.cursor.m_p2)
+
+                // Build exit event - only include m_p1/m_p2 if they exist to preserve them
+                const exitEvent = {
+                    mode: 'explore',
+                    x: null,
+                    y: null,
+                    handle_x: null,
+                    handle_y: null,
+                    measuring: false
+                }
+
+                // Only add m_p1 and m_p2 to the event if they exist (don't send null)
+                // This way Chart.vue won't update them, preserving the measurement
+                if (this.cursor.m_p1) exitEvent.m_p1 = this.cursor.m_p1
+                if (this.cursor.m_p2) exitEvent.m_p2 = this.cursor.m_p2
+
+                this.comp.$emit('cursor-changed', exitEvent)
+                this.update()
+                return
+            }
+
+            // Initialize crosshair at press location (enter aim mode)
+            const touch_x = event.center.x + this.offset_x
+            const touch_y = event.center.y + this.offset_y + this.layout.offset
+
+            console.log('[PRESS] ✓ Entering aim mode at position:', touch_x, touch_y)
+
+            // Build enter event - preserve existing measurement if any
+            const enterEvent = {
+                grid_id: this.id,
+                x: touch_x,
+                y: touch_y,
+                handle_x: touch_x,
+                handle_y: touch_y,
+                mode: 'aim',
+                measuring: false
+            }
+
+            // Preserve measurement points if they exist
+            if (this.cursor.m_p1) enterEvent.m_p1 = this.cursor.m_p1
+            if (this.cursor.m_p2) enterEvent.m_p2 = this.cursor.m_p2
+
+            this.comp.$emit('cursor-changed', enterEvent)
+            console.log('[PRESS] ✓ Emitted cursor-changed with mode=aim')
+
             setTimeout(() => this.update())
-            this.sim_mousedown(event)
+            // Don't call sim_mousedown when entering aim mode - it interferes with cursor position
+            // this.sim_mousedown(event)
         })
 
         let add = addEventListener
@@ -221,11 +460,39 @@ export default class Grid {
     }
 
     emit_cursor_coord(event, add = {}) {
+        // Desktop or explore mode - direct position
         this.comp.$emit('cursor-changed', Object.assign({
             grid_id: this.id,
             x: event.center.x + this.offset_x,
             y: event.center.y + this.offset_y + this.layout.offset
         }, add))
+    }
+
+    // Emit cursor coordinates with relative control (mobile aim mode)
+    emit_cursor_coord_relative(handle_x, handle_y, cross_x, cross_y) {
+        // Validate inputs - don't emit NaN values
+        if (isNaN(cross_x) || isNaN(cross_y)) {
+            console.log('[emit_cursor_coord_relative] Skipping emit - NaN values:', cross_x, cross_y)
+            return
+        }
+
+        // Clamp crosshair position within bounds
+        const clamped_x = Math.max(0, Math.min(
+            this.layout.width,
+            cross_x
+        ))
+        const clamped_y = Math.max(0, Math.min(
+            this.layout.height + this.layout.offset,
+            cross_y
+        ))
+
+        this.comp.$emit('cursor-changed', {
+            grid_id: this.id,
+            x: clamped_x,
+            y: clamped_y,
+            handle_x: handle_x,
+            handle_y: handle_y
+        })
     }
 
     pan_fade(event) {

@@ -88,7 +88,34 @@ export default {
             this.range_changed([t1, t2])
         },
         cursor_changed(e) {
+            console.log('[Chart.vue cursor_changed] Received event:', e)
+            console.log('[Chart.vue cursor_changed] Before - cursor.mode:', this.cursor.mode, 'cursor.measuring:', this.cursor.measuring, 'cursor.x:', this.cursor.x, 'cursor.y:', this.cursor.y)
+
             if (e.mode) this.cursor.mode = e.mode
+
+            // Explicitly update cursor position if provided (allow null for clearing, reject NaN)
+            if (e.x !== undefined) {
+                // Allow null to clear position, but reject NaN values
+                if (e.x === null || !isNaN(e.x)) {
+                    this.cursor.x = e.x
+                }
+            }
+            if (e.y !== undefined) {
+                // Allow null to clear position, but reject NaN values
+                if (e.y === null || !isNaN(e.y)) {
+                    this.cursor.y = e.y
+                }
+            }
+            if (e.handle_x !== undefined) this.cursor.handle_x = e.handle_x
+            if (e.handle_y !== undefined) this.cursor.handle_y = e.handle_y
+            if (e.grid_id !== undefined) this.cursor.grid_id = e.grid_id
+
+            if (e.measuring !== undefined) this.cursor.measuring = e.measuring
+            if (e.m_p1 !== undefined) this.cursor.m_p1 = e.m_p1
+            if (e.m_p2 !== undefined) this.cursor.m_p2 = e.m_p2
+
+            console.log('[Chart.vue cursor_changed] After - cursor.mode:', this.cursor.mode, 'cursor.measuring:', this.cursor.measuring, 'cursor.x:', this.cursor.x, 'cursor.y:', this.cursor.y)
+
             if (this.cursor.mode !== 'explore') {
                 this.updater.sync(e)
             }
@@ -345,7 +372,12 @@ export default {
             cursor: {
                 x: null, y: null, t: null, y$: null,
                 grid_id: null, locked: false, values: {},
-                scroll_lock: false, mode: Utils.xmode()
+                scroll_lock: false, mode: Utils.xmode(),
+                handle_x: null, handle_y: null,  // Mobile control handle position
+                // Mobile measurement state
+                measuring: false,
+                m_p1: null,  // First measurement point [t, y$]
+                m_p2: null   // Second measurement point [t, y$]
             },
 
             // A trick to re-render botbar
