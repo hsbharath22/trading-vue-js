@@ -88,9 +88,6 @@ export default {
             this.range_changed([t1, t2])
         },
         cursor_changed(e) {
-            console.log('[Chart.vue cursor_changed] Received event:', e)
-            console.log('[Chart.vue cursor_changed] Before - cursor.mode:', this.cursor.mode, 'cursor.measuring:', this.cursor.measuring, 'cursor.x:', this.cursor.x, 'cursor.y:', this.cursor.y)
-
             if (e.mode) this.cursor.mode = e.mode
 
             // Explicitly update cursor position if provided (allow null for clearing, reject NaN)
@@ -113,8 +110,6 @@ export default {
             if (e.measuring !== undefined) this.cursor.measuring = e.measuring
             if (e.m_p1 !== undefined) this.cursor.m_p1 = e.m_p1
             if (e.m_p2 !== undefined) this.cursor.m_p2 = e.m_p2
-
-            console.log('[Chart.vue cursor_changed] After - cursor.mode:', this.cursor.mode, 'cursor.measuring:', this.cursor.measuring, 'cursor.x:', this.cursor.x, 'cursor.y:', this.cursor.y)
 
             if (this.cursor.mode !== 'explore') {
                 this.updater.sync(e)
