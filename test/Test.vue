@@ -43,7 +43,6 @@ import Interfaces from './tests/Interfaces.vue'
 import IndexBased from './tests/IndexBased.vue'
 import Performance from './tests/Performance.vue'
 import Renko from './tests/Renko.vue'
-import Scripts from './tests/Scripts.vue'
 import Extensions from './tests/Extensions.vue'
 import Datasets from './tests/Datasets.vue'
 
@@ -51,7 +50,7 @@ const TESTS = {
     Simple, Stocks, Timeframes, Multichart,
     LegendButtons, ChartTypes, DataHelper, Toolbar,
     GridSettings, Interfaces, IndexBased, Performance,
-    Renko, Scripts, Extensions, Datasets
+    Renko, Extensions, Datasets
 }
 
 export default {
